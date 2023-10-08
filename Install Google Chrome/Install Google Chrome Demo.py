@@ -24,14 +24,7 @@
 # COMMAND ----------
 
 # MAGIC %sh
-# MAGIC ls /tmp
-
-# COMMAND ----------
-
-# MAGIC %sh
-# MAGIC export MSG="Installed and found"
 # MAGIC ls /usr/bin | grep goo
-# MAGIC echo $MSG
 
 # COMMAND ----------
 
@@ -59,7 +52,6 @@ from selenium.webdriver.remote.webelement import WebElement
 url_ninjas: str = "https://api-ninjas.com/"
 
 # COMMAND ----------
-
 
 def open_chrome(url: str, headless: bool = True):
     """Open Google Chrome browser and navigate to the specified URL.
@@ -98,10 +90,6 @@ def close_browser(driver):
 
 # COMMAND ----------
 
-ninjas = open_chrome(url=url_ninjas)
-print(ninjas.title)
-close_browser(ninjas)
-
-# COMMAND ----------
-
-
+driver = open_chrome(url=url_ninjas)
+driver.get(url_ninjas)
+print(driver.title)
