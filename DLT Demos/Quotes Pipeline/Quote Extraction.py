@@ -16,7 +16,7 @@ display(dbutils.fs.ls(path_schema_autoloader))
 
 # COMMAND ----------
 
-# dbutils.fs.rm("/mnt/landing/quotes_dbx",True)
+display(dbutils.fs.ls("/mnt/dbx"))
 
 # COMMAND ----------
 
@@ -42,7 +42,3 @@ save_to_storage(path_dbfs=path_landing_quotes_dbx,data=quote)
 
 # MAGIC %sql
 # MAGIC DROP CATALOG __databricks_internal CASCADE
-
-# COMMAND ----------
-
-
