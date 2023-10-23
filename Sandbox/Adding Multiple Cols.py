@@ -21,7 +21,7 @@
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC -- Create Table Vehicle
+# MAGIC -- Create Table VehicleType
 # MAGIC
 # MAGIC CREATE TABLE IF NOT EXISTS vehicletype (
 # MAGIC   Id BIGINT NOT NULL PRIMARY KEY 
@@ -67,58 +67,91 @@
 
 # COMMAND ----------
 
-sql_cmd_distinct_culture_code = """SELECT DISTINCT ( CultureCode ) FROM vehicletype"""
-
-get_list_of_culture_code = spark.sql(sql_cmd_distinct_culture_code)
-print(type(get_list_of_culture_code))
-
-# Extract culture codes into a list
-culture_codes = [row.CultureCode for row in get_list_of_culture_code.collect()]
-
-# Print the resulting list of culture codes
-print(culture_codes)
-
-# COMMAND ----------
-
-for each_culture_code in  culture_codes:
-    sql_dyn_cmd = f""" SELECT * FROM vehicle V LEFT JOIN vehicletype VT ON ( V.VehicleTypeId = VT.Id ) WHERE VT.CultureCode = '{each_culture_code}' """
-    spark.sql(sql_dyn_cmd).show()
-
-# COMMAND ----------
-
-for each_culture_code in  culture_codes:
-    sql_dyn_cmd = f""" SELECT * FROM vehicle V LEFT JOIN vehicletype VT ON ( V.VehicleTypeId = VT.Id ) WHERE VT.CultureCode = '{each_culture_code}' """
-    print(sql_dyn_cmd)
-
-# COMMAND ----------
-
 df_vehicle = spark.table("vehicle")
 df_vehicletype = spark.table("vehicletype")
 
 # COMMAND ----------
 
-for each_culture_code in  culture_codes:
-    cmd = f"translation_{each_culture_code}"
-    df = df_vehicle.join(df_vehicletype, df_vehicle.VehicleTypeId == df_vehicletype.Id , "left")
-
-df.show()
+df_vehicle.schema
 
 # COMMAND ----------
 
-df_test = df_vehicle.join(df_vehicletype, df_vehicle.VehicleTypeId == df_vehicletype.Id, "left").select("vehicle.Id","vehicle.Vin","vehicletype.CultureCode","vehicletype.Description","vehicletype.Model_Body")
+df_vehicle.show()
 
 # COMMAND ----------
 
-df_test.show()
+df_joined = df_vehicle.join(df_vehicletype, df_vehicle.VehicleTypeId == df_vehicletype.Id , "left").select("vehicle.*","vehicletype.CultureCode","vehicletype.Model_Body","vehicletype.Description")
 
 # COMMAND ----------
 
-import pyspark.sql.functions as F
+df_joined.show()
 
 # COMMAND ----------
 
-# Pivot the DataFrame
-pivot_df = df_test.groupBy("Id", "Vin" ).pivot("CultureCode").agg( F.col("Description"), F.col("Model_Body") ) 
+from pyspark.sql import functions as F
+
+
+def build_agg_method(cols_to_translate: list[str]):
+    """
+    Generate PySpark aggregation expressions for a list of columns.
+
+    Args:
+        cols_to_translate (list[str]): A list of column names for which you want to generate aggregation expressions.
+
+    Returns:
+        list: A list of PySpark Column expressions with alias names in the format "column_name_translated".
+    """
+
+    expr = []
+    for col_name in cols_to_translate:
+        expression = F.first(F.col(col_name)).alias(f"{col_name}_translated")
+        expr.append(expression)
+    return expr
+
+def pivot_translations(
+    df, pillar_cols: list, pivot_col: str, cols_translate: list[str]
+):
+    """
+    Pivot and translate columns in a PySpark DataFrame.
+
+    Args:
+        df (DataFrame): The PySpark DataFrame to pivot and translate.
+        pillar_cols (list): List of columns to use as pivot pillars.
+        pivot_col (str): The column to pivot.
+        cols_translate (list[str]): A list of column names to translate.
+
+    Returns:
+        DataFrame: A new DataFrame with columns pivoted and translated as specified.
+
+    Example:
+    >>> columns_to_translate = ["Description", "Model_Body"]
+    >>> pivot_columns = ["Category"]
+    >>> pivot_column = "Language"
+    >>> translated_df = pivot_translations(df, pivot_columns, pivot_column, columns_to_translate)
+    >>> # The result will be a DataFrame with the specified columns pivoted and translated.
+    """
+    
+    build_expr = build_agg_method(cols_translate)
+    pivot_df = df.groupBy(*pillar_cols).pivot(pivot_col).agg(*build_expr)
+    return pivot_df
+
+
+# COMMAND ----------
+
+# Provide the Dataframe joined
+cols = ["Id", "Vin"]
+pivot_col = "CultureCode"
+cols_translate = ["Description", "Model_Body"]
+pivot_df = pivot_translations(
+    df=df_joined,
+    pillar_cols=cols,
+    col_to_pivot=pivot_col,
+    cols_to_translate=cols_translate,
+)
+
+# COMMAND ----------
+
+pivot_df.show()
 
 # COMMAND ----------
 
