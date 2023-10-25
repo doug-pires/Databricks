@@ -3,25 +3,19 @@
 
 # COMMAND ----------
 
-# MAGIC %pip list
-
-# COMMAND ----------
-
 import dbdemos
 
 # COMMAND ----------
 
-dbdemos
+dbdemos.help()
 
 # COMMAND ----------
-
 
 dbdemos.list_demos()
 
 # COMMAND ----------
 
-import dbdemos
-dbdemos.list_demos()
+dbdemos.install('dlt-loans',cloud="Azure")
 
 # COMMAND ----------
 
